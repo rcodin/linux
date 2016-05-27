@@ -38,7 +38,7 @@
 #include <linux/syscore_ops.h>
 #include <linux/compiler.h>
 #include <linux/hugetlb.h>
-
+#include <linux/cma.h>
 #include <asm/page.h>
 #include <asm/sections.h>
 
@@ -46,6 +46,7 @@
 #include <crypto/sha.h>
 #include "kexec_internal.h"
 
+#define CRASH_ALIGN		(16 << 20)
 DEFINE_MUTEX(kexec_mutex);
 
 /* Per cpu memory for storing cpu states in case of system crash. */
@@ -56,7 +57,7 @@ static unsigned char vmcoreinfo_data[VMCOREINFO_BYTES];
 u32 vmcoreinfo_note[VMCOREINFO_NOTE_SIZE/4];
 size_t vmcoreinfo_size;
 size_t vmcoreinfo_max_size = sizeof(vmcoreinfo_data);
-
+struct page *pages;
 /* Flag to indicate we are going to kexec a new kernel */
 bool kexec_in_progress = false;
 
@@ -946,6 +947,27 @@ int crash_shrink_memory(unsigned long new_size)
 unlock:
 	mutex_unlock(&kexec_mutex);
 	return ret;
+}
+int crash_free_memory(int size)
+{
+	bool ret;
+	ret = cma_release(crash_cma, pages, size>>PAGE_SHIFT);
+
+	if (!ret) {
+		pr_info("Crash memory release failed");
+		return 0;
+	}
+	return 1;
+}
+int crash_alloc_memory(unsigned int size)
+{
+	pages = cma_alloc(crash_cma, size>>PAGE_SHIFT, CRASH_ALIGN);
+	if (!pages){
+		pr_info("Memory for crash kernel not allocated");
+		return 0;
+	}
+
+	return 1;
 }
 
 static u32 *append_elf_note(u32 *buf, char *name, unsigned type, void *data,
