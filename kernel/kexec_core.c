@@ -84,6 +84,7 @@ int kexec_should_crash(struct task_struct *p)
 	 */
 	if (crash_kexec_post_notifiers)
 		return 0;
+	//pr_info("PAGE no of stating page of crash kernel %lu", (unsigned long)(crash_cma->base_pfn));
 	/*
 	 * There are 4 panic() calls in do_exit() path, each of which
 	 * corresponds to each of these 4 conditions.

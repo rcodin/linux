@@ -81,7 +81,6 @@
  */
 
 typedef unsigned long kimage_entry_t;
-
 struct kexec_segment {
 	/*
 	 * This pointer can point to user memory if kexec_load() system
@@ -307,7 +306,7 @@ extern size_t vmcoreinfo_max_size;
 
 /* flag to track if kexec reboot is in progress */
 extern bool kexec_in_progress;
-
+extern struct cma *crash_cma;
 int __init parse_crashkernel(char *cmdline, unsigned long long system_ram,
 		unsigned long long *crash_size, unsigned long long *crash_base);
 int parse_crashkernel_high(char *cmdline, unsigned long long system_ram,

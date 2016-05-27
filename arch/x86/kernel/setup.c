@@ -69,6 +69,7 @@
 #include <linux/crash_dump.h>
 #include <linux/tboot.h>
 #include <linux/jiffies.h>
+#include <linux/cma.h>
 
 #include <video/edid.h>
 
@@ -122,7 +123,7 @@
  */
 unsigned long max_low_pfn_mapped;
 unsigned long max_pfn_mapped;
-
+struct cma *crash_cma;
 #ifdef CONFIG_DMI
 RESERVE_BRK(dmi_alloc, 65536);
 #endif
@@ -555,7 +556,6 @@ static void __init reserve_crashkernel(void)
 	unsigned long long crash_size, crash_base, total_mem;
 	bool high = false;
 	int ret;
-
 	total_mem = memblock_phys_mem_size();
 
 	/* crashkernel=XM */
@@ -578,6 +578,8 @@ static void __init reserve_crashkernel(void)
 						    high ? CRASH_ADDR_HIGH_MAX
 							 : CRASH_ADDR_LOW_MAX,
 						    crash_size, CRASH_ALIGN);
+		pr_info("ronit 0 crash_base %llu crash_size %llu \n", crash_base, crash_size);
+
 		if (!crash_base) {
 			pr_info("crashkernel reservation failed - No suitable area found.\n");
 			return;
@@ -589,23 +591,24 @@ static void __init reserve_crashkernel(void)
 		start = memblock_find_in_range(crash_base,
 					       crash_base + crash_size,
 					       crash_size, 1 << 20);
+		pr_info("ronit base_mentioned crash_base %llu crash_size %llu \n", crash_base, crash_size);
 		if (start != crash_base) {
 			pr_info("crashkernel reservation failed - memory is in use.\n");
 			return;
 		}
 	}
-	ret = memblock_reserve(crash_base, crash_size);
+	ret =  cma_declare_contiguous(crash_base, crash_size, 0, CRASH_ALIGN, 0, 0, &crash_cma);
 	if (ret) {
 		pr_err("%s: Error reserving crashkernel memblock.\n", __func__);
 		return;
 	}
 
-	if (crash_base >= (1ULL << 32) && reserve_crashkernel_low()) {
-		memblock_free(crash_base, crash_size);
-		return;
-	}
+	// if (crash_base >= (1ULL << 32) && reserve_crashkernel_low()) {
+		// memblock_free(crash_base, crash_size);
+		// return;
+	// }
 
-	pr_info("Reserving %ldMB of memory at %ldMB for crashkernel (System RAM: %ldMB)\n",
+	pr_info("ronit halder Reserving %ldMB of memory at %ldMB for crashkernel (System RAM: %ldMB)\n",
 		(unsigned long)(crash_size >> 20),
 		(unsigned long)(crash_base >> 20),
 		(unsigned long)(total_mem >> 20));
