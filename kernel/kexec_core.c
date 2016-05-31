@@ -962,11 +962,13 @@ int crash_free_memory(int size)
 int crash_alloc_memory(unsigned int size)
 {
 	pages = cma_alloc(crash_cma, size>>PAGE_SHIFT, CRASH_ALIGN);
+	pr_info("In crash_alloc_memory fucntion");
 	if (!pages){
 		pr_info("Memory for crash kernel not allocated");
 		return 0;
 	}
 
+	crashk_res.start = crash_cma->base_pfn;
 	return 1;
 }
 
