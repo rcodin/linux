@@ -613,9 +613,9 @@ static void __init reserve_crashkernel(void)
 		// (unsigned long)(crash_base >> 20),
 		// (unsigned long)(total_mem >> 20));
 
-	crashk_res.start = crash_base;
-	crashk_res.end   = crash_base + crash_size - 1;
-	insert_resource(&iomem_resource, &crashk_res);
+	// crashk_res.start = crash_base;
+	// crashk_res.end   = crash_base + crash_size - 1;
+	// insert_resource(&iomem_resource, &crashk_res);
 }
 #else
 static void __init reserve_crashkernel(void)

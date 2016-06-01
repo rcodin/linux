@@ -49,6 +49,8 @@
 #define CRASH_ALIGN		(16 << 20)
 DEFINE_MUTEX(kexec_mutex);
 
+// struct cma *crash_cma;
+
 /* Per cpu memory for storing cpu states in case of system crash. */
 note_buf_t __percpu *crash_notes;
 
@@ -957,18 +959,21 @@ int crash_free_memory(int size)
 		pr_info("Crash memory release failed");
 		return 0;
 	}
+	release_resource(&crashk_res);
 	return 1;
 }
 int crash_alloc_memory(unsigned int size)
 {
-	pages = cma_alloc(crash_cma, size>>PAGE_SHIFT, CRASH_ALIGN);
+	pages = cma_alloc(crash_cma, size>>PAGE_SHIFT, KEXEC_CRASH_MEM_ALIGN);
 	pr_info("In crash_alloc_memory fucntion");
 	if (!pages){
 		pr_info("Memory for crash kernel not allocated");
 		return 0;
 	}
 
-	crashk_res.start = crash_cma->base_pfn;
+	crashk_res.start = cma_get_base(crash_cma);
+	crashk_res.end = crashk_res.start + size;//check the size after alligning 
+	insert_resource(&iomem_resource, &crashk_res);
 	return 1;
 }
 
