@@ -597,7 +597,7 @@ static void __init reserve_crashkernel(void)
 			return;
 		}
 	}
-	ret =  cma_declare_contiguous(crash_base, crash_size, 0, CRASH_ALIGN, 0, 0, &crash_cma);
+	ret =  cma_declare_contiguous(crash_base, crash_size, 0, CRASH_ALIGN, 0, 1, &crash_cma);
 	if (ret) {
 		pr_err("%s: Error reserving crashkernel memblock.\n", __func__);
 		return;
