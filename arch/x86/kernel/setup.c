@@ -608,14 +608,14 @@ static void __init reserve_crashkernel(void)
 		// return;
 	// }
 
-	//pr_info("ronit halder Reserving %ldMB of memory at %ldMB for crashkernel (System RAM: %ldMB)\n",
-		// (unsigned long)(crash_size >> 20),
-		// (unsigned long)(crash_base >> 20),
-		// (unsigned long)(total_mem >> 20));
+	pr_info("ronit halder Reserving %ldMB of memory at %ldMB for crashkernel (System RAM: %ldMB)\n",
+		(unsigned long)(crash_size >> 20),
+		(unsigned long)(crash_base >> 20),
+		(unsigned long)(total_mem >> 20));
 
-	// crashk_res.start = crash_base;
-	// crashk_res.end   = crash_base + crash_size - 1;
-	// insert_resource(&iomem_resource, &crashk_res);
+	crashk_res.start = crash_base;
+	crashk_res.end   = crash_base + crash_size - 1;
+	insert_resource(&iomem_resource, &crashk_res);
 }
 #else
 static void __init reserve_crashkernel(void)

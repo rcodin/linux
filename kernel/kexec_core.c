@@ -971,9 +971,9 @@ int crash_alloc_memory(unsigned int size)
 	//	return 0;
 	//}
 
-	crashk_res.start = cma_get_base(crash_cma);
-	crashk_res.end = crashk_res.start + size;//check the size after alligning 
-	insert_resource(&iomem_resource, &crashk_res);
+	// crashk_res.start = cma_get_base(crash_cma);
+	// crashk_res.end = crashk_res.start + size;//check the size after alligning 
+	// insert_resource(&iomem_resource, &crashk_res);
 	return 1;
 }
 
