@@ -318,7 +318,7 @@ size_t crash_get_memory_size(void);
 void crash_free_reserved_phys_range(unsigned long begin, unsigned long end);
 
 //custom functions
-int crash_free_memory(int size);
+int crash_free_memory(unsigned int size);
 int crash_alloc_memory(unsigned int size);
 
 int __weak arch_kexec_kernel_image_probe(struct kimage *image, void *buf,

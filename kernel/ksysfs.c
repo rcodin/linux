@@ -116,16 +116,19 @@ static ssize_t kexec_crash_size_store(struct kobject *kobj,
 {
 	unsigned long cnt;
 	int ret;
+	int size;
 
 	if (kstrtoul(buf, 0, &cnt))
 		return -EINVAL;
 
-	//ret = crash_shrink_memory(cnt);
-	// if (cnt > crash_get_memory_size())
-	ret = crash_alloc_memory(cnt<<20);
-	if (cnt == 0)
+	size = cnt<<20;
+	if (cnt == 0) {
 		ret = crash_free_memory(crash_get_memory_size());
-	// return ret < 0 ? ret : count;
+	}
+	else if (cnt > 0){
+		ret = crash_free_memory(crash_get_memory_size());
+		ret = crash_alloc_memory(size);
+	}
 	return count;
 }
 KERNEL_ATTR_RW(kexec_crash_size);
