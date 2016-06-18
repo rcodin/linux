@@ -123,9 +123,12 @@ static ssize_t kexec_crash_size_store(struct kobject *kobj,
 
 	size = cnt<<20;
 	if (cnt == 0) {
+		crash_free_memory_low();
 		ret = crash_free_memory(crash_get_memory_size());
 	}
-	else if (cnt > 0){
+	else if (cnt > 0) {
+		crash_free_memory_low();
+		crash_alloc_memory_low();
 		ret = crash_free_memory(crash_get_memory_size());
 		ret = crash_alloc_memory(size);
 	}

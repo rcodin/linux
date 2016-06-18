@@ -123,7 +123,7 @@
  */
 unsigned long max_low_pfn_mapped;
 unsigned long max_pfn_mapped;
-struct cma *crash_cma;
+struct cma *crashk_cma, *crashk_cma_low;
 #ifdef CONFIG_DMI
 RESERVE_BRK(dmi_alloc, 65536);
 #endif
@@ -533,20 +533,24 @@ static int __init reserve_crashkernel_low(void)
 		return -ENOMEM;
 	}
 
-	ret = memblock_reserve(low_base, low_size);
+	ret =  cma_declare_contiguous(low_base, low_size, 0, CRASH_ALIGN, 0, 1, &crashk_cma_low);
 	if (ret) {
-		pr_err("%s: Error reserving crashkernel low memblock.\n", __func__);
+		pr_err("%s: Error reserving CMA area for crashkernel low.\n", __func__);
 		return ret;
 	}
-
+	// pages = cma_alloc(crash_cma_low, low_size>>PAGE_SHIFT, KEXEC_CRASH_MEM_ALIGN);
+	// if (pages) {
+		// pr_err("%s: Error reserving memory from CMA area for crashkernel low.\n", __func__);
+	// 	return -ENOMEM;
+	// }
 	pr_info("Reserving %ldMB of low memory at %ldMB for crashkernel (System low RAM: %ldMB)\n",
 		(unsigned long)(low_size >> 20),
 		(unsigned long)(low_base >> 20),
 		(unsigned long)(total_low_mem >> 20));
 
-	crashk_low_res.start = low_base;
-	crashk_low_res.end   = low_base + low_size - 1;
-	insert_resource(&iomem_resource, &crashk_low_res);
+	// crashk_low_res.start = low_base;
+	// crashk_low_res.end   = low_base + low_size - 1;
+	// insert_resource(&iomem_resource, &crashk_low_res);
 #endif
 	return 0;
 }
@@ -597,16 +601,14 @@ static void __init reserve_crashkernel(void)
 			return;
 		}
 	}
-	ret =  cma_declare_contiguous(crash_base, crash_size, 0, CRASH_ALIGN, 0, 1, &crash_cma);
-	if (ret) {
-		pr_err("%s: Error reserving crashkernel memblock.\n", __func__);
+	if (crash_base >= (1ULL << 32) && reserve_crashkernel_low()) {
 		return;
 	}
-
-	// if (crash_base >= (1ULL << 32) && reserve_crashkernel_low()) {
-		// memblock_free(crash_base, crash_size);
-		// return;
-	// }
+	ret =  cma_declare_contiguous(crash_base, crash_size, 0, CRASH_ALIGN, 0, 1, &crashk_cma);
+	if (ret) {
+		pr_err("%s: Error reserving CMA area for crashkernel.\n", __func__);
+		return;
+	}
 
 	pr_info("ronit halder Reserving %ldMB of memory at %ldMB for crashkernel (System RAM: %ldMB)\n",
 		(unsigned long)(crash_size >> 20),

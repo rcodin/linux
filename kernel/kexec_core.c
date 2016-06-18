@@ -59,7 +59,7 @@ static unsigned char vmcoreinfo_data[VMCOREINFO_BYTES];
 u32 vmcoreinfo_note[VMCOREINFO_NOTE_SIZE/4];
 size_t vmcoreinfo_size;
 size_t vmcoreinfo_max_size = sizeof(vmcoreinfo_data);
-struct page *pages;
+static struct page *pages, *pages_low;
 /* Flag to indicate we are going to kexec a new kernel */
 bool kexec_in_progress = false;
 
@@ -953,7 +953,7 @@ unlock:
 int crash_free_memory(unsigned int size)
 {
 	bool ret;
-	ret = cma_release(crash_cma, pages, size>>PAGE_SHIFT);
+	ret = cma_release(crashk_cma, pages, size>>PAGE_SHIFT);
 
 	if (!ret) {
 		pr_info("Crash memory release failed");
@@ -962,9 +962,10 @@ int crash_free_memory(unsigned int size)
 	release_resource(&crashk_res);
 	return 1;
 }
+
 int crash_alloc_memory(unsigned int size)
 {
-	pages = cma_alloc(crash_cma, size>>PAGE_SHIFT, KEXEC_CRASH_MEM_ALIGN);
+	pages = cma_alloc(crashk_cma, size>>PAGE_SHIFT, KEXEC_CRASH_MEM_ALIGN);
 	pr_info("In crash_alloc_memory fucntion");
 	if (!pages){
 		pr_info("Memory for crash kernel not allocated");
@@ -974,6 +975,34 @@ int crash_alloc_memory(unsigned int size)
 	crashk_res.start = page_to_pfn(pages)<<PAGE_SHIFT;
 	crashk_res.end = crashk_res.start + size - 1;//check the size after alligning 
 	insert_resource(&iomem_resource, &crashk_res);
+	return 1;
+}
+
+int crash_free_memory_low(void)
+{
+	bool ret;
+	ret = cma_release(crashk_cma_low, pages_low, cma_get_size(crashk_cma_low)>>PAGE_SHIFT);
+
+	if (!ret) {
+		pr_info("Crash memory release failed");
+		return 0;
+	}
+	release_resource(&crashk_low_res);
+	return 1;
+}
+
+int crash_alloc_memory_low(void)
+{
+	pages = cma_alloc(crashk_cma_low, cma_get_size(crashk_cma_low)>>PAGE_SHIFT, KEXEC_CRASH_MEM_ALIGN);
+	pr_info("In crash_alloc_memory fucntion");
+	if (!pages){
+		pr_info("Memory for crash kernel not allocated");
+		return 0;
+	}
+
+	crashk_low_res.start = page_to_pfn(pages)<<PAGE_SHIFT;
+	crashk_low_res.end = crashk_low_res.start + cma_get_size(crashk_cma_low) - 1;//check the size after alligning 
+	insert_resource(&iomem_resource, &crashk_low_res);
 	return 1;
 }
 

@@ -306,7 +306,7 @@ extern size_t vmcoreinfo_max_size;
 
 /* flag to track if kexec reboot is in progress */
 extern bool kexec_in_progress;
-extern struct cma *crash_cma;
+extern struct cma *crashk_cma, *crashk_cma_low;
 int __init parse_crashkernel(char *cmdline, unsigned long long system_ram,
 		unsigned long long *crash_size, unsigned long long *crash_base);
 int parse_crashkernel_high(char *cmdline, unsigned long long system_ram,
@@ -320,6 +320,8 @@ void crash_free_reserved_phys_range(unsigned long begin, unsigned long end);
 //custom functions
 int crash_free_memory(unsigned int size);
 int crash_alloc_memory(unsigned int size);
+int crash_alloc_memory_low(void);
+int crash_free_memory_low(void);
 
 int __weak arch_kexec_kernel_image_probe(struct kimage *image, void *buf,
 					 unsigned long buf_len);
