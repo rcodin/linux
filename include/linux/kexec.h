@@ -322,6 +322,7 @@ int crash_free_memory(unsigned int size);
 int crash_alloc_memory(unsigned int size);
 int crash_alloc_memory_low(void);
 int crash_free_memory_low(void);
+size_t crash_get_memory_size_low(void);
 
 int __weak arch_kexec_kernel_image_probe(struct kimage *image, void *buf,
 					 unsigned long buf_len);

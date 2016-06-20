@@ -123,7 +123,8 @@
  */
 unsigned long max_low_pfn_mapped;
 unsigned long max_pfn_mapped;
-struct cma *crashk_cma, *crashk_cma_low;
+struct cma *crashk_cma = NULL;
+struct cma *crashk_cma_low = NULL;
 #ifdef CONFIG_DMI
 RESERVE_BRK(dmi_alloc, 65536);
 #endif

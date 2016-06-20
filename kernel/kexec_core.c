@@ -48,7 +48,7 @@
 
 #define CRASH_ALIGN		(16 << 20)
 DEFINE_MUTEX(kexec_mutex);
-
+DEFINE_MUTEX(kexec_mutex_low);
 // struct cma *crash_cma;
 
 /* Per cpu memory for storing cpu states in case of system crash. */
@@ -891,6 +891,17 @@ size_t crash_get_memory_size(void)
 	return size;
 }
 
+size_t crash_get_memory_size_low(void)
+{
+	size_t size = 0;
+
+	mutex_lock(&kexec_mutex_low);
+	if (crashk_low_res.end != crashk_low_res.start)
+		size = resource_size(&crashk_low_res);
+	mutex_unlock(&kexec_mutex_low);
+	return size;
+}
+
 void __weak crash_free_reserved_phys_range(unsigned long begin,
 					   unsigned long end)
 {
@@ -952,6 +963,8 @@ unlock:
 }
 int crash_free_memory(unsigned int size)
 {
+	if (!crashk_cma)
+		return 0;
 	bool ret;
 	ret = cma_release(crashk_cma, pages, size>>PAGE_SHIFT);
 
@@ -965,6 +978,8 @@ int crash_free_memory(unsigned int size)
 
 int crash_alloc_memory(unsigned int size)
 {
+	if (!crashk_cma)
+		return 0;
 	pages = cma_alloc(crashk_cma, size>>PAGE_SHIFT, KEXEC_CRASH_MEM_ALIGN);
 	pr_info("In crash_alloc_memory fucntion");
 	if (!pages){
@@ -980,11 +995,13 @@ int crash_alloc_memory(unsigned int size)
 
 int crash_free_memory_low(void)
 {
+	if (!crashk_cma_low)
+		return 0;
 	bool ret;
 	ret = cma_release(crashk_cma_low, pages_low, cma_get_size(crashk_cma_low)>>PAGE_SHIFT);
 
 	if (!ret) {
-		pr_info("Crash memory release failed");
+		pr_info("Crash low memory release failed");
 		return 0;
 	}
 	release_resource(&crashk_low_res);
@@ -993,10 +1010,12 @@ int crash_free_memory_low(void)
 
 int crash_alloc_memory_low(void)
 {
+	if (!crashk_cma_low)
+		return 0;
 	pages = cma_alloc(crashk_cma_low, cma_get_size(crashk_cma_low)>>PAGE_SHIFT, KEXEC_CRASH_MEM_ALIGN);
 	pr_info("In crash_alloc_memory fucntion");
 	if (!pages){
-		pr_info("Memory for crash kernel not allocated");
+		pr_info("Low memory for crash kernel not allocated");
 		return 0;
 	}
 
