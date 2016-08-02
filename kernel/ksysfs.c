@@ -120,18 +120,27 @@ static ssize_t kexec_crash_size_store(struct kobject *kobj,
 
 	if (kstrtoul(buf, 0, &cnt))
 		return -EINVAL;
-
+#ifdef CONFIG_KEXEC_CMA
+#ifdef CONFIG_X86
 	size = cnt<<20;
 	if (cnt == 0) {
 		crash_free_memory_low();
 		ret = crash_free_memory(crash_get_memory_size());
 	} else if (cnt > 0) {
-		if (crash_get_memory_size_low() == 0)
-			crash_alloc_memory_low();
+		if (!crash_get_memory_size_low() && !crash_alloc_memory_low())
+			return -ENOMEM;
 		ret = crash_free_memory(crash_get_memory_size());
+		if (ret)
+			return ret;
 		ret = crash_alloc_memory(size);
+		if (ret)
+			return ret;
 	}
 	return count;
+#endif
+#endif
+	ret = crash_shrink_memory(cnt);
+	return ret < 0 ? ret : count;
 }
 KERNEL_ATTR_RW(kexec_crash_size);
 

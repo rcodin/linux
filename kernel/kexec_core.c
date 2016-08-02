@@ -891,17 +891,6 @@ size_t crash_get_memory_size(void)
 	return size;
 }
 
-size_t crash_get_memory_size_low(void)
-{
-	size_t size = 0;
-
-	mutex_lock(&kexec_mutex_low);
-	if (crashk_low_res.end != crashk_low_res.start)
-		size = resource_size(&crashk_low_res);
-	mutex_unlock(&kexec_mutex_low);
-	return size;
-}
-
 void __weak crash_free_reserved_phys_range(unsigned long begin,
 					   unsigned long end)
 {
@@ -961,71 +950,85 @@ unlock:
 	mutex_unlock(&kexec_mutex);
 	return ret;
 }
-int crash_free_memory(unsigned int size)
-{
-	int ret;
+#ifdef CONFIG_KEXEC_CMA
+#ifdef CONFIG_X86
+	size_t crash_get_memory_size_low(void)
+	{
+		size_t size = 0;
 
-	if (!crashk_cma)
-		return 0;
-	ret = cma_release(crashk_cma, pages, size >> PAGE_SHIFT);
-
-	if (!ret) {
-		pr_info("Crash memory release failed");
-		return 0;
+		mutex_lock(&kexec_mutex_low);
+		if (crashk_low_res.end != crashk_low_res.start)
+			size = resource_size(&crashk_low_res);
+		mutex_unlock(&kexec_mutex_low);
+		return size;
 	}
-	release_resource(&crashk_res);
-	return 1;
-}
+	int crash_free_memory(unsigned int size)
+	{
+		int ret;
 
-int crash_alloc_memory(unsigned int size)
-{
-	if (!crashk_cma)
-		return 0;
-	pages = cma_alloc(crashk_cma, size >> PAGE_SHIFT, KEXEC_CRASH_MEM_ALIGN);
+		if (!crashk_cma)
+			return 0;
+		ret = cma_release(crashk_cma, pages, size >> PAGE_SHIFT);
 
-	if (!pages) {
-		pr_info("Memory for crash kernel not allocated");
-		return 0;
-	}
-
-	crashk_res.start = page_to_pfn(pages) << PAGE_SHIFT;
-	crashk_res.end = crashk_res.start + size - 1;
-	insert_resource(&iomem_resource, &crashk_res);
-	return 1;
-}
-
-int crash_free_memory_low(void)
-{
-	int ret;
-
-	if (!crashk_cma_low)
-		return 0;
-	ret = cma_release(crashk_cma_low, pages_low, cma_get_size(crashk_cma_low) >> PAGE_SHIFT);
-
-	if (!ret) {
-		pr_info("Crash low memory release failed");
-		return 0;
-	}
-	release_resource(&crashk_low_res);
-	return 1;
-}
-
-int crash_alloc_memory_low(void)
-{
-	if (!crashk_cma_low)
-		return 0;
-	pages = cma_alloc(crashk_cma_low, cma_get_size(crashk_cma_low) >> PAGE_SHIFT, KEXEC_CRASH_MEM_ALIGN);
-
-	if (!pages) {
-		pr_info("Low memory for crash kernel not allocated");
+		if (!ret) {
+			pr_info("Crash memory release failed");
+			return ret;
+		}
+		release_resource(&crashk_res);
 		return 0;
 	}
 
-	crashk_low_res.start = page_to_pfn(pages) << PAGE_SHIFT;
-	crashk_low_res.end = crashk_low_res.start + cma_get_size(crashk_cma_low) - 1;
-	insert_resource(&iomem_resource, &crashk_low_res);
-	return 1;
-}
+	int crash_alloc_memory(unsigned int size)
+	{
+		if (!crashk_cma)
+			return 0;
+		pages = cma_alloc(crashk_cma, size >> PAGE_SHIFT, KEXEC_CRASH_MEM_ALIGN);
+
+		if (!pages) {
+			pr_info("Memory for crash kernel not allocated");
+			return -ENOMEM;
+		}
+
+		crashk_res.start = page_to_pfn(pages) << PAGE_SHIFT;
+		crashk_res.end = crashk_res.start + size - 1;
+		insert_resource(&iomem_resource, &crashk_res);
+		return 0;
+	}
+
+	int crash_free_memory_low(void)
+	{
+		int ret;
+
+		if (!crashk_cma_low)
+			return 0;
+		ret = cma_release(crashk_cma_low, pages_low, cma_get_size(crashk_cma_low) >> PAGE_SHIFT);
+
+		if (!ret) {
+			pr_info("Crash low memory release failed");
+			return ret;
+		}
+		release_resource(&crashk_low_res);
+		return 0;
+	}
+
+	int crash_alloc_memory_low(void)
+	{
+		if (!crashk_cma_low)
+			return 0;
+		pages = cma_alloc(crashk_cma_low, cma_get_size(crashk_cma_low) >> PAGE_SHIFT, KEXEC_CRASH_MEM_ALIGN);
+
+		if (!pages) {
+			pr_info("Low memory for crash kernel not allocated");
+			return -ENOMEM;
+		}
+
+		crashk_low_res.start = page_to_pfn(pages) << PAGE_SHIFT;
+		crashk_low_res.end = crashk_low_res.start + cma_get_size(crashk_cma_low) - 1;
+		insert_resource(&iomem_resource, &crashk_low_res);
+		return 0;
+	}
+#endif
+#endif
 
 static u32 *append_elf_note(u32 *buf, char *name, unsigned type, void *data,
 			    size_t data_len)
