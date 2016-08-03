@@ -116,13 +116,14 @@ static ssize_t kexec_crash_size_store(struct kobject *kobj,
 {
 	unsigned long cnt;
 	int ret;
-	int size;
 
 	if (kstrtoul(buf, 0, &cnt))
 		return -EINVAL;
 #ifdef CONFIG_KEXEC_CMA
 #ifdef CONFIG_X86
-	size = cnt<<20;
+	int size;
+
+	size = cnt << 20;
 	if (cnt == 0) {
 		crash_free_memory_low();
 		ret = crash_free_memory(crash_get_memory_size());
